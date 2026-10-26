@@ -1,0 +1,4 @@
+interface:
+  display_name: "Ops: Setup issue tracking"
+  short_description: "Configure and document repository issue tracking"
+  default_prompt: "Use $ops-setup-issue-tracking to configure issue tracking for this repository."
