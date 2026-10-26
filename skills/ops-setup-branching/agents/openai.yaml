@@ -1,0 +1,4 @@
+interface:
+  display_name: "Ops: Setup branching"
+  short_description: "Define branch naming and repository merge strategy"
+  default_prompt: "Use $ops-setup-branching to set up or revise branching policy for this repository."
