@@ -1,7 +1,44 @@
-# Agent-ops
-Short for agent operations, this repository will provide minimal set of skills complimenting matt pocock skills, that automate parts of the workflow such as:
-- starting the implementation (create dedicated worktree in predefined location) 
-- create pull request
-- setup branch naming conventions
+# Agent operations
 
-Skills use mix of agent oriented markdown, bash scrips and yaml configuration files.
+Reusable skills for setting up and running development workflows across repositories.
+
+## Install
+
+Install an individual skill with the [Skills CLI](https://github.com/vercel-labs/skills):
+
+```sh
+npx skills add tomaskub/agent-ops --skill ops-setup-issue-tracking
+```
+
+Add `-g` for installation across projects, or select agents with `-a codex -a claude-code`. To inspect the available skills first:
+
+```sh
+npx skills add tomaskub/agent-ops --list
+```
+
+To use a local checkout before publishing changes, run this from the target project:
+
+```sh
+npx skills add /path/to/agent-ops --skill ops-setup-issue-tracking
+```
+
+## Setup issue tracking
+
+Use [`ops-setup-issue-tracking`](skills/ops-setup-issue-tracking/SKILL.md) to configure or revise a repository's durable tracking in Linear, Jira, GitHub Issues with optional Projects, or local Markdown.
+
+The skill inspects the current setup and asks you to confirm or change its repository identity, work scopes, statuses, labels, custom fields, and workflow rules. It applies agreed configuration changes and writes:
+
+- `docs/agents/issue-tracking.md` for platform identities, keys, and exact configured values.
+- `docs/agents/issue-scopes.md` for work levels and relationships.
+- `docs/agents/issue-rules.md` for workflow and metadata policy.
+
+Both `AGENTS.md` and `CLAUDE.md` lead agents to those documents. Local tracking defaults to Git-tracked Markdown in root `issues/`. When required access or configuration is missing, the skill writes an incomplete draft with next steps.
+
+Example request after installation, from the target project:
+
+```text
+Use ops-setup-issue-tracking to set up this repository's issue tracking.
+Inspect what exists and help me confirm or change the configuration.
+```
+
+Project-specific settings stay in the target repository. Installing the skill does not configure tracking until you run it.
