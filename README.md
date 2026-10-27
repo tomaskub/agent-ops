@@ -42,3 +42,22 @@ Inspect what exists and help me confirm or change the configuration.
 ```
 
 Project-specific settings stay in the target repository. Installing the skill does not configure tracking until you run it.
+
+## Setup branching
+
+Use [`ops-setup-branching`](skills/ops-setup-branching/SKILL.md) after `ops-setup-issue-tracking` to define or revise branch naming, trunk-based or Gitflow development, and merge strategy. Install it with:
+
+```sh
+npx skills add tomaskub/agent-ops --skill ops-setup-branching
+```
+
+The skill reads the issue-tracking documents, inspects existing conventions, and helps you agree a policy. Fresh repositories default to `main`, short-lived issue branches named `<prefix>/<issue-id>-<summary>`, direct PRs, and squash merges. Established repositories retain their conventions unless a change is agreed.
+
+It writes `docs/agents/branching.md` and connects both `AGENTS.md` and `CLAUDE.md` to it. The policy covers branch roles, merge methods, dependent stacks, integration branches, cleanup, and release or hotfix flows when applicable. Strategy changes include a transition plan for existing work. Hosting enforcement is recorded separately; the skill changes documentation without executing Git operations or changing hosting settings.
+
+Example request after installation, from the target project:
+
+```text
+Use ops-setup-branching to set up this repository's branching policy.
+Inspect the issue-tracking documents and existing conventions, then propose defaults.
+```
