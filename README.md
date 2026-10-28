@@ -61,3 +61,24 @@ Example request after installation, from the target project:
 Use ops-setup-branching to set up this repository's branching policy.
 Inspect the issue-tracking documents and existing conventions, then propose defaults.
 ```
+
+## Setup review standards
+
+Use [`ops-setup-review-standards`](skills/ops-setup-review-standards/SKILL.md) to establish or revise code quality and spec fulfillment review policy for a new or existing repository. Install it with:
+
+```sh
+npx skills add tomaskub/agent-ops --skill ops-setup-review-standards
+```
+
+The skill discovers existing standards and reviewer profiles, then helps you agree reviewer briefs, severity definitions, blocking thresholds, and operator exceptions. It writes or reuses an authoritative policy, defaulting to `docs/agents/review-standards.md`, and connects both `AGENTS.md` and `CLAUDE.md`. It works without requiring the other setup skills.
+
+The policy requires separate quality and spec reviewers. Initial quality review covers the full change; quality re-reviews cover new commits and earlier unresolved findings. Spec review covers the full change every round. Proposed quality tiers are major, minor, and nit, with only major blocking by default. The setup interview confirms or changes those definitions and thresholds.
+
+The operator can explicitly authorize proceeding with blockers or without an issue or spec. The policy requires those decisions and rationale in the durable untracked run record and PR, while preserving the actual review results. It identifies runner compatibility gaps without implementing a runner or changing CI and hosting settings.
+
+Example request after installation, from the target project:
+
+```text
+Use ops-setup-review-standards to clarify this repository's code review policy.
+Inspect existing standards and help me define the quality and spec reviews.
+```
