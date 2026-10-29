@@ -61,3 +61,24 @@ Example request after installation, from the target project:
 Use ops-setup-branching to set up this repository's branching policy.
 Inspect the issue-tracking documents and existing conventions, then propose defaults.
 ```
+
+## Setup development environment
+
+Use [`ops-setup-dev-environment`](skills/ops-setup-dev-environment/SKILL.md) to prepare a repository or selected area for development in fresh clones and worktrees. Install it with:
+
+```sh
+npx skills add tomaskub/agent-ops --skill ops-setup-dev-environment
+```
+
+The skill discovers existing tooling, interviews you about unresolved choices, and implements a repeatable setup command using the repository's conventions. It covers dependencies, local configuration, generated files, and required services while preserving existing local state and supporting concurrent worktrees. Host prerequisites and secret sources are agreed during the interview.
+
+It reuses an authoritative setup guide or writes `docs/agents/dev-environment.md`, then connects both `AGENTS.md` and `CLAUDE.md` to it. Validation runs setup in a fresh checkout and repeats it with a cheap readiness check. Missing prerequisites or credentials are reported as verification limits.
+
+Example request after installation, from the target project:
+
+```text
+Use ops-setup-dev-environment to set up the backend in this repository.
+Inspect existing tooling and help me agree a command a new worktree can run to become ready for development.
+```
+
+This skill stands alone and supplies environment preparation for the planned `ops-implement` workflow. Verification policy and the full test suite remain separate.
