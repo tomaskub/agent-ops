@@ -1,0 +1,4 @@
+interface:
+  display_name: "Ops: Setup review standards"
+  short_description: "Define quality and spec review policy for a repository"
+  default_prompt: "Use $ops-setup-review-standards to clarify and document review policy for this repository."
