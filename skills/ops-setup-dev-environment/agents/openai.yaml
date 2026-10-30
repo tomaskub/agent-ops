@@ -1,0 +1,4 @@
+interface:
+  display_name: "Ops: Setup development environment"
+  short_description: "Automate development setup for clones and worktrees"
+  default_prompt: "Use $ops-setup-dev-environment to configure a repeatable development setup command and agent guide for this repository or selected area."
