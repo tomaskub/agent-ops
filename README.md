@@ -74,7 +74,7 @@ The skill discovers existing standards and reviewer profiles, then helps you agr
 
 The policy requires separate quality and spec reviewers. Initial quality review covers the full change; quality re-reviews cover new commits and earlier unresolved findings. Spec review covers the full change every round. Proposed quality tiers are major, minor, and nit, with only major blocking by default. The setup interview confirms or changes those definitions and thresholds.
 
-The operator can explicitly authorize proceeding with blockers or without an issue or spec. The policy requires those decisions and rationale in the durable untracked run record and PR, while preserving the actual review results. It identifies runner compatibility gaps without implementing a runner or changing CI and hosting settings.
+The operator can explicitly authorize proceeding with blockers or without an issue or spec. The local run record and PR capture those decisions and rationale alongside the original verdicts. It identifies runner compatibility gaps without implementing a runner or changing CI and hosting settings.
 
 Example request after installation, from the target project:
 
@@ -82,6 +82,31 @@ Example request after installation, from the target project:
 Use ops-setup-review-standards to clarify this repository's code review policy.
 Inspect existing standards and help me define the quality and spec reviews.
 ```
+
+## Review a change
+
+Install and invoke [`ops-review-quality`](skills/ops-review-quality/SKILL.md) and [`ops-review-spec`](skills/ops-review-spec/SKILL.md) independently. Each skill works in a local subagent or a separate container worker with read access to the pinned commits and review inputs.
+
+```sh
+npx skills add tomaskub/agent-ops --skill ops-review-quality
+npx skills add tomaskub/agent-ops --skill ops-review-spec
+```
+
+Give each reviewer the repository, exact implementation base and head SHAs, and verification evidence for that head. Provide the issue criteria and applicable parent constraints to the spec reviewer. On a quality re-review, supply the prior result and coverage history, including unresolved findings. If tracker access is unavailable in a worker, supply captured criteria with source references and versions.
+
+Each reviewer returns JSON with its role, reviewed SHAs and range, verdict, findings, and verification limits. The caller retains the results and operator decisions in the local run record or reports them in the GitHub PR, as configured. Check both SHAs against the intended revision before using a result to decide readiness or posting it as current.
+
+### Example review rounds
+
+An issue requires well-formed CSV, including quoted commas, and a usage example in the README. Its parent requires export to work offline. The example repository treats major quality findings as blocking and minor findings as advisory. In the table, `B` is the pinned implementation base and `H1`, `H2`, and `H3` are successive heads. In a real invocation, use full commit SHAs.
+
+| Round | Quality | Spec |
+| --- | --- | --- |
+| Initial review at `H1` | Review `B` to `H1`. `fail` with a major finding for broken CSV escaping and a minor finding for an unclear variable name. | Review `B` to `H1`. `fail` on CSV quoting and the missing README example. Record the evidence for offline behavior. |
+| Re-review at `H2` after a quoting fix | Review `H1` to `H2` and recheck both findings. Mark the quoting finding `fixed` under its original ID. The naming advisory can stay open with a `pass`. | Review `B` to `H2`. Mark quoting fixed, recheck the parent constraint, and keep `fail` for the missing example even though the fix touched only the exporter. |
+| Head moves to `H3` before handoff | Keep the `H2` result in history. Use its coverage for an `H3` re-review if the policy and history still permit it. | Keep the `H2` result in history. Assess `B` to `H3` before treating the spec review as current. |
+
+If verification evidence for a requirement is missing at the reviewed head, record that criterion as `unverified`. A confirmed blocker still yields `fail`. If the operator accepts the missing README example at `H2`, record their rationale and scope alongside the `fail` verdict. Check whether that decision still applies at `H3`.
 
 ## Setup development environment
 

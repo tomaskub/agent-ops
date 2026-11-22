@@ -12,8 +12,8 @@ Execution readiness: <ready, pending runner changes, or unverified, with follow-
 
 | Reviewer | Profile or policy brief | Authoritative inputs |
 | --- | --- | --- |
-| Code quality | <existing profile link or brief below> | <standards and relevant verification sources> |
-| Spec fulfillment | <existing profile link or brief below> | <issue/spec discovery and explicit clarifications> |
+| Code quality | <ops-review-quality, existing profile link, or brief below> | <standards and relevant verification sources> |
+| Spec fulfillment | <ops-review-spec, existing profile link, or brief below> | <issue/spec discovery and explicit clarifications> |
 
 <Add specialist reviewers only when agreed. Each core reviewer uses a separate agent and produces a separate result against the same current reviewed revision.>
 
@@ -44,11 +44,11 @@ Current reviewed revision: <how the runner captures the fixed current SHA>.
 | Quality re-review | New commits since the previous quality-reviewed SHA, plus verification of earlier unresolved findings. Retain earlier coverage and dispositions. |
 | Spec, every round | Full implementation change at the current reviewed SHA against all applicable requirements. |
 
-<Agreed recovery for missing review evidence or rewritten history. Explain that changed revisions need updated coverage and affected exceptions need reconsideration.>
+<Agreed recovery for missing review evidence or rewritten history. For each handoff, compare the result's base and head to the current intended revision. Retain mismatched results as history and obtain current coverage. Reconsider affected exceptions.>
 
 ## Findings and verdicts
 
-<Define the finding fields: stable ID, reviewer role, location, evidence, violated requirement or concrete risk, quality tier when applicable, blocking status, and disposition. Define fixed verification, evidence-based rejection, advisory findings left open, and operator overrides.>
+<Reference the reviewer result contract or existing structured format and its mapping. Require role, fixed base and head, range, verdict, and verification limits. Each finding has a stable ID, location, evidence of the concrete risk or unmet requirement, quality tier when applicable, blocking status, and disposition. Define fixed verification, evidence-based rejection, advisory findings left open, and operator overrides.>
 
 <Keep separate verdicts for each role. Pass means no unresolved blockers and sufficient evidence, and can include advisory findings. Fail means blockers remain; unverified identifies insufficient assessment evidence. Not assessed applies to authorized work without a usable spec. An exception does not convert fail or not assessed into pass.>
 
@@ -60,11 +60,13 @@ Current reviewed revision: <how the runner captures the fixed current SHA>.
 
 ## Run record and PR handoff
 
-Run-record convention: <link to existing documentation, or state that storage is pending runner implementation>.
+Local run-record convention: <link to the existing durable untracked record convention, or identify a runner follow-up>.
+
+GitHub reporting convention: <link to the existing PR reporting convention, or identify a runner follow-up>.
 
 <Require a durable untracked run record containing task identity or description, captured criteria or source version, fixed base and reviewed SHAs, review ranges, reviewer identities, both verdicts, findings, dispositions, verification limits, and operator decisions with rationale. Link earlier rounds for incremental quality coverage. Leave general schema and storage mechanics with the implementation workflow.>
 
-<Require PR-visible review outcomes, remaining findings and dispositions, verification limits, and operator exceptions including authorization to proceed without a spec. Include the substantive decisions and rationale in the PR; a local untracked-file link alone does not communicate them.>
+<The caller retains the reviewers' structured results. Require PR-visible role-specific outcomes, reviewed base and head, remaining findings and dispositions, verification limits, and operator exceptions. Include substantive decisions and rationale in the PR, including any authorization to proceed without a spec. Keep prior revision results identifiable as history. The caller owns record storage and PR publication.>
 
 ## Workflow and execution follow-ups
 

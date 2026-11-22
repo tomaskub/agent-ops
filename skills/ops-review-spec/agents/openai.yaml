@@ -1,0 +1,4 @@
+interface:
+  display_name: "Ops: Review spec fulfillment"
+  short_description: "Check the full change against the assigned requirements"
+  default_prompt: "Use $ops-review-spec to assess the assigned revision against its issue criteria and parent constraints."
