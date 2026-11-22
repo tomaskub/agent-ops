@@ -1,0 +1,22 @@
+# Local run record
+
+Use the repository's durable untracked run-record convention if it has one. Otherwise use one file per issue under `ops-workflow-local/` in the path returned by `git rev-parse --path-format=absolute --git-common-dir` for the verified repository. This keeps the record addressable from the source checkout and linked worktrees, including before worktree creation. Keep evidence beside the record or link to stable local artifacts. Record the path in pause and handoff messages. Preserve unrelated records and keep credentials and other secrets out of logs and notes.
+
+Use Markdown or the repository's existing format. Only one coordinator should drive a given repository and issue at a time. If another run is active, pause and reconcile ownership before resuming. Update the record at decisions, before external mutations and after observing their outcomes. Keep historical results and approved proposals available when a new revision or proposal supersedes them.
+
+| Record | What to keep |
+| --- | --- |
+| Identity and intake | Issue ID and URL, captured criteria or source version, applicable parent constraints and policies, repository and remote, branch, worktree, implementation base SHA and PR target. |
+| Proposals and decisions | Current phase and next action, original and revised branch and PR proposals, operator approvals and feedback, and any pause or exception with actor, time, rationale and exact scope or revision. |
+| Preparation and verification | Bootstrap command and readiness, current HEAD and tested commit or patch, environment, verification commands, working directories, actual exit and required or optional per-check outcomes with evidence. |
+| Review rounds | Reviewer identities, base and current head, previous quality-reviewed SHA and coverage reference, review ranges, both structured results, finding IDs and dispositions, and verification limits. |
+| Budgets and recovery | Limits, attempts already used, pending side effects or uncertainties, inspected live state, and remaining blockers. |
+| Publication | Approved target, head, title and complete body, push and create attempts, confirmed PR identity and URL, and observed issue status. |
+
+## Reconcile before retrying
+
+1. Read the prior record and inspect the current issue, repository identity, registered worktrees, branch, base ancestry, HEAD and dirty state. Reuse the matching worktree. If state disagrees with the approved plan, stop before overwriting, recreating or moving anything. Restore context from the record and live references. Missing approval or evidence requires a fresh decision or current evidence for that gate.
+2. Resume at the first incomplete gate. After a failed check, keep its evidence and resume within the remaining repair budget. After an interruption during verification or review, use only complete results for the current committed revision, leaving older results in history. Recheck whether any recorded exception still applies. Keep branch and PR approval gates separate and preserve the exact proposal approved at each gate.
+3. For an uncertain tracker change, query the live issue before retrying. If the intended state is already present, record it. Retry only from the expected prior state while that transition is authorized. For an uncertain push, query the exact remote ref and compare with the approved SHA. Continue after an observed match. If it is absent, retry only when the branch approval and PR approval still apply. A different remote head or unavailable live state needs reconciliation before any write.
+4. Before retrying PR creation, query GitHub for the same head repository and branch and inspect matching PRs, including a PR that may have closed or had its target changed. A unique open PR with the approved base, source, head SHA, title and body establishes publication. A conflicting or multiple match, a closed or merged PR, or a lookup failure requires a decision before retrying. If GitHub confirms that no PR exists, retry only within the authorized operation and budget. Count the initial attempt and allow at most one retry for each uncertain mutation unless repository policy specifies another limit.
+5. If publication was confirmed before an interruption, use the recorded URL to confirm the same PR and finish only the pending tracker transition. If it is already In Review, record the observed status. If the issue has moved unexpectedly or publication cannot be verified, preserve the evidence and pause for reconciliation.
