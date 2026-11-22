@@ -102,7 +102,7 @@ Use ops-setup-dev-environment to set up the backend in this repository.
 Inspect existing tooling and help me agree a command a new worktree can run to become ready for development.
 ```
 
-This skill stands alone and supplies environment preparation for the planned `ops-implement` workflow. Verification policy and the full test suite remain separate.
+This skill supplies the environment preparation used by [`ops-implement`](skills/ops-implement/SKILL.md).
 
 ## Setup verification
 
@@ -122,3 +122,23 @@ Example request after installation, from the target project:
 Use ops-setup-verification to set up repeatable checks for this repository.
 Inspect our existing tooling and help me agree which checks are required.
 ```
+
+## Implement or repair an issue
+
+Use [`ops-implement`](skills/ops-implement/SKILL.md) for one assigned issue in a prepared checkout. Local and distributed orchestrators invoke the same skill. Install it with:
+
+```sh
+npx skills add tomaskub/agent-ops --skill ops-implement
+```
+
+Pass the issue scope and acceptance criteria, repository identity, prepared checkout path, approved branch and base SHA, and any retry limits. For a repair, also pass the current revision or patch and the blocking findings tied to it. For example:
+
+```text
+Use $ops-implement to implement APP-12 in the prepared checkout at /path/to/app-worktree.
+The target is owner/app on work/APP-12, based on <base SHA>.
+Scope: reject blank display names when saving a profile.
+Acceptance: blank or whitespace-only names return a validation error, and valid names still save.
+Run the repository's required checks and return the patch and verification evidence.
+```
+
+For a repair, use the same invocation and give the starting revision and the agreed findings to address. The handoff covers the changed files, tested revision or patch, checks and evidence, acceptance criteria, and remaining blockers. The orchestrator uses it to track revisions, decide when to dispatch review, and publish the PR.
