@@ -1,0 +1,4 @@
+interface:
+  display_name: "Ops: Review code quality"
+  short_description: "Review a pinned change against repository quality policy"
+  default_prompt: "Use $ops-review-quality to review the assigned revision and return its quality findings and verdict."

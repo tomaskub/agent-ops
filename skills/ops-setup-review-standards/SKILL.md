@@ -17,7 +17,7 @@ Inspect agent entry points, contribution and coding standards, architecture and 
 
 When present, read the repository's issue-tracking and implementation workflow documents. In this skill family, `docs/agents/issue-tracking.md` identifies the tracker and `docs/agents/issue-rules.md` owns lifecycle, checks, PR references, and completion. Reuse those sources without making prior setup skills prerequisites. A small repository can agree review policy without a configured tracker or a formal spec.
 
-Identify the current review runner, reviewer selection, run-record convention, and relationship to CI or hosted reviews. Inspect installed review instructions when available; availability alone does not establish compatibility with the agreed policy. Discovery is complete when current rules, conflicts, missing decisions, and execution gaps are identified.
+Identify the current review runner, reviewer selection, durable record convention, and relationship to CI or hosted reviews. Check where the local workflow records results and where the GitHub workflow reports them, when applicable. Inspect installed review instructions when available; availability alone does not establish compatibility with the agreed policy. Discovery is complete when current rules, conflicts, missing decisions, and execution gaps are identified.
 
 ## 2. Agree the review policy
 
@@ -33,7 +33,7 @@ Show the concrete policy and proposed documentation changes before writing. Proc
 
 Use [review-standards.md](assets/review-standards.md) as the output starting point. Replace its instructions and placeholders with agreed values. Reuse an existing authoritative policy location when appropriate; create additional standards documents only for agreed rules that have no suitable home.
 
-Keep review mechanics, reviewer briefs, severity policy, and exception handling together. Link coding standards, verification, issue lifecycle, and general run-record documentation at their existing authoritative locations. Document a missing run-record convention as a runner follow-up, including the required durable untracked record and PR handoff; this skill does not implement its storage.
+Keep review mechanics, reviewer briefs, severity policy, and exception handling together. Link coding standards, verification, issue lifecycle, and general run-record documentation at their existing authoritative locations. Document any gaps in durable records or PR reporting as runner follow-ups. For applicable workflows, agree how the caller retains local results and reports GitHub results against the reviewed revision.
 
 Within the agreed scope, reconcile conflicting review instructions through narrow edits and replace duplicated policy with pointers. Preserve unrelated content, imports, symlinks, and shared files outside the repository. If a higher-level conflict prevents operation, report it as a gap rather than declaring the setup ready.
 
@@ -55,6 +55,6 @@ Before preparing reviewer instructions, reviewing changes, responding to finding
 
 Check both entry-point chains and all policy links. Remove output-template instructions and resolve contradictions within the agreed scope. Check that every reviewer has a brief, standards or requirement sources, a review range, a verdict contract, and disposition rules.
 
-Walk the agreed policy through an initial review, a fix followed by incremental quality and full spec re-review, an advisory finding, an operator override of a blocker, and work without an issue or spec. Confirm that earlier unresolved findings remain visible, exceptions reach the PR, and an unassessed requirement cannot become a pass. A changed revision needs updated review coverage and applicable exception decisions.
+Walk the agreed policy through an initial review, a fix followed by incremental quality and full spec re-review, an advisory finding, an operator override of a blocker, and work without an issue or spec. Confirm that earlier unresolved findings remain visible, exceptions reach the PR, and an unassessed requirement cannot become a pass. Walk through a head change between review and handoff. Confirm that only results for the current base and head count toward readiness and that affected exceptions are reconsidered.
 
 Report files changed, agreed reviewer roles and thresholds, verification, policy status, and runner follow-ups. This setup configures future reviews; it does not certify a particular implementation or create demonstration runs, commits, or PRs.

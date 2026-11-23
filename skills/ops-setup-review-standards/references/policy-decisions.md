@@ -6,7 +6,7 @@ Use this checklist during discovery and agreement. Defaults are proposals, not r
 
 Require separate code quality and spec fulfillment agents with separate briefs and verdicts. They can run concurrently against the same pinned current revision. Keep their results distinguishable when aggregating. Allow additional specialist reviewers without replacing either core role.
 
-For each role, agree whether to use an existing repository profile, a workspace profile, or the brief in the repository policy. Reference existing profiles and their applicable overrides. Keep reusable execution procedures in shared skills; provider-specific agent configuration is needed only when the operator requests it.
+For each role, agree whether to use the shared `ops-review-quality` and `ops-review-spec` skills, an existing profile, or the brief in the repository policy. Reference existing profiles and their applicable overrides. Keep reusable execution procedures in shared skills; provider-specific agent configuration is needed only when the operator requests it.
 
 Code quality covers correctness, maintainability, security, test adequacy, relevant performance risks, and documented conventions. Identify applicable architecture, language, testing, contribution, and path-specific standards. Link authoritative sources. Heuristics and observed practices remain judgment calls unless adopted as policy. A material defect can be reported without a written rule; its evidence must establish the risk. Avoid repeating mechanical findings already reported by tooling, while assessing behavior that passing tools cannot establish.
 
@@ -34,7 +34,7 @@ Use pinned commit SHAs for the implementation base, the current reviewed revisio
 - Quality re-reviews cover the previous quality-reviewed revision to the current one and verify earlier unresolved findings. Context may be read to assess a change; a full quality re-review is not required on every round.
 - Spec review always assesses the full implementation change at the current reviewed revision against all current requirements, including behavior outside the latest fix diff.
 
-Carry forward quality coverage and finding dispositions from earlier rounds; a clean latest diff alone does not erase an earlier blocker. Agree how to recover when prior review evidence is missing or rewritten history prevents a valid incremental range. Propose a new initial quality review for such a gap. A changed head needs new coverage; exceptions apply to the recorded scope and revision and require reconsideration when affected code or requirements change.
+Carry forward quality coverage and finding dispositions from earlier rounds; a clean latest diff alone does not erase an earlier blocker. Agree how to recover when prior review evidence is missing or rewritten history prevents a valid incremental range. Propose a new initial quality review for such a gap. Before using a result for readiness or presenting it as current in a PR, the caller checks its base and head against the intended revision. Keep mismatches as history and obtain fresh coverage. Exceptions apply to the recorded scope and revision and require reconsideration when affected code or requirements change.
 
 For an unborn repository, document handling of the first root-commit comparison as a runner follow-up. Policy setup can finish without creating a commit or fabricating review endpoints; execution readiness depends on the runner establishing valid coverage.
 
@@ -58,14 +58,14 @@ Require enough information in the durable untracked run record to resume review 
 - Implementation base, current reviewed SHA, each review's exact range, reviewer role/profile, and links to earlier rounds.
 - Separate quality and spec verdicts: `pass`, `fail`, or `unverified`; use `not assessed` for an explicitly authorized absent spec. Advisory findings can accompany a pass.
 - Findings with stable identifiers, role, location at the reviewed revision or missing-behavior location, evidence, violated requirement or concrete risk, quality tier where applicable, and blocking status.
-- Dispositions such as open, fixed with verification, rejected with evidence, advisory left open, or accepted by operator override. Link each exception to its decision and retain its scope and rationale.
+- Dispositions such as open, fixed with verification, rejected with evidence, or advisory left open. Track any operator override alongside the open finding and link its decision, scope, and rationale.
 - Verification evidence and limits, remaining blockers, and the decision governing progression.
 
-Link an existing run-record convention instead of defining another schema. If none exists, identify durable untracked storage and PR handoff as a runner prerequisite without inventing a path or implementing storage in this setup. Do not use chat history as the only record. PR content must carry both review outcomes, outstanding findings and dispositions, verification limits, and operator exceptions with rationale. An untracked local path alone is insufficient for PR readers.
+Have the caller retain each structured result and the operator decisions that apply to it. Link the existing run-record and GitHub reporting conventions. Identify any missing convention as a runner follow-up. Chat history alone is insufficient for resuming a round. The PR must carry both review outcomes, reviewed base and head, outstanding findings and dispositions, verification limits, and operator exceptions with rationale. A local path alone is insufficient for PR readers.
 
 ## Workflow placement and readiness
 
-Agree where these reviews inform the implementation workflow and where blocking findings stop autonomous progress. Proposed placement is after relevant verification and before PR creation. The operator retains the explicit exception authority described above. Inspect existing CI, hosted reviews, issue transitions, and publication rules; document their relationship and preserve their own gates and permissions.
+Agree where these reviews inform the implementation workflow and where blocking findings stop autonomous progress. Local workflows can review after relevant verification and before opening a PR. A GitHub-based workflow can open a PR first and review its pinned revision. The operator retains the explicit exception authority described above. Inspect existing CI, hosted reviews, issue transitions, and publication rules; document their relationship and preserve their own gates and permissions.
 
 Review setup changes documentation. Configuring external enforcement and implementing the runner are separate tasks. Policy can be complete with named runner follow-ups; execution is ready only when the selected runner can honor it.
 
