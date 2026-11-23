@@ -1,0 +1,4 @@
+interface:
+  display_name: "Ops: Implement"
+  short_description: "Implement or repair one scoped issue"
+  default_prompt: "Use $ops-implement to implement one scoped issue or address current blocking findings in a prepared checkout."
