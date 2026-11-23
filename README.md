@@ -179,3 +179,15 @@ npx skills add tomaskub/agent-ops --skill ops-workflow-local --skill ops-impleme
 From the target project, request `ops-workflow-local APP-12` with your actual issue key. The coordinator reads the repository's setup and review policies, then asks you to approve the pinned base, branch, isolated worktree and In Progress transition. It runs the repository's checks and uses separate quality and spec reviewers on the verified commit. It asks for approval of the complete PR draft before pushing, confirms publication and leaves the issue In Review for human handoff.
 
 Use the same issue key to resume from the saved local run record. The workflow uses the repository's own setup and verification commands and runs without Hermes or Docker.
+
+## Deliver an issue with distributed workers
+
+Use [`ops-workflow-distributed`](skills/ops-workflow-distributed/SKILL.md) from a configured Hermes host. Install it alongside the shared role skills:
+
+```sh
+npx skills add tomaskub/agent-ops --skill ops-workflow-distributed --skill ops-implement --skill ops-review-quality --skill ops-review-spec
+```
+
+Start or resume an authorized Linear issue and repository with the [coordinator interface](skills/ops-workflow-distributed/references/coordinator.md). After the first passing required verification, the host publishes one PR through the PER-73 GitHub App helper. Separate quality and spec workers review the pinned revision in sequence. Verified repairs update the same PR, and final evidence goes to a human for merge.
+
+Run the local scripted exercise with `python3 -B tests/distributed_fixture.py`. The fixture uses a disposable Git repository, a scripted worker launcher and an App publication fixture.
