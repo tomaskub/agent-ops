@@ -78,16 +78,22 @@ def artifact(job, name):
 def review_matches(result, role, request):
     if not isinstance(result, dict) or result.get("schema_version") != 1:
         return False
-    if any(result.get(key) != value for key, value in {
-        "role": role, "base_sha": request["base_sha"], "head_sha": request["head_sha"],
-        "range_start_sha": request["range_start_sha"],
-        "prior_review_ref": request.get("prior_review_ref"),
-    }.items()):
+    verdict = result.get("verdict")
+    inconclusive = verdict == "unverified"
+    if result.get("role") != role or any(
+        key not in result or (result[key] != request[key] and not (inconclusive and result[key] is None))
+        for key in ("base_sha", "head_sha", "range_start_sha")
+    ):
+        return False
+    prior = result.get("prior_review_ref")
+    if prior != request.get("prior_review_ref") and not (inconclusive and prior is None):
         return False
     findings = result.get("findings")
     limits = result.get("verification_limits")
     if (not isinstance(findings, list) or not isinstance(limits, list)
             or not all(isinstance(limit, str) for limit in limits)):
+        return False
+    if inconclusive and not any(limit.strip() for limit in limits):
         return False
     ids = set()
     for finding in findings:
@@ -106,15 +112,14 @@ def review_matches(result, role, request):
                                or not isinstance(finding.get("unmet_requirement"), str)):
             return False
         ids.add(finding["id"])
-    if not {finding["id"] for finding in request["prior_findings"]} <= ids:
+    if not inconclusive and not {finding["id"] for finding in request["prior_findings"]} <= ids:
         return False
-    verdict = result.get("verdict")
     blocked = any(f["blocking"] and f["disposition"] in OPEN_DISPOSITIONS for f in findings)
-    if verdict not in ("pass", "fail") or blocked != (verdict == "fail"):
+    if verdict not in ("pass", "fail", "unverified") or blocked != (verdict == "fail"):
         return False
     if role == "spec":
         requirements = result.get("requirements")
-        if not isinstance(requirements, list) or not requirements:
+        if not isinstance(requirements, list) or (not requirements and not inconclusive):
             return False
         if not all(isinstance(item, dict) and all(
             isinstance(item.get(key), str) and item[key] for key in ("id", "source", "evidence")
@@ -125,7 +130,7 @@ def review_matches(result, role, request):
             return False
         requirement_ids = {item["id"] for item in requirements}
         if (len(requirement_ids) != len(requirements)
-                or not set(request["requirement_ids"]) <= requirement_ids
+                or (not inconclusive and not set(request["requirement_ids"]) <= requirement_ids)
                 or not {finding["unmet_requirement"] for finding in findings} <= requirement_ids):
             return False
     return True
@@ -362,6 +367,12 @@ class Coordinator:
                                  response=self.response)
             self.record_recovery(decision, "retry_job", entry["id"])
             self.count(f"job_retry:{key}", self.config.get("limits", {}).get("job_retries", 1), entry["id"])
+            if role.endswith("-review"):
+                round_ = self.state["reviews"].get(head, {})
+                review_role = role.removesuffix("-review")
+                saved = round_.get(review_role)
+                if saved and saved["job_id"] == entry["id"]:
+                    entry["superseded_review"] = round_.pop(review_role)
             entry["rejected"] = True
             self.event("job", "Operator authorized one fresh attempt after reconciling the terminal job.",
                        job_id=entry["id"], head_sha=head)
@@ -455,11 +466,18 @@ class Coordinator:
                 "PR identity, state, base or head differs from the pinned run. Preserve human changes.")
         return pr
 
+    def check_pr_target(self, pr, head):
+        target = self.host("pr_target", proposal=self.plan, number=pr["number"])
+        require(target == {"number": pr["number"], "base_ref": self.plan["target"],
+                           "base_sha": self.plan["base_sha"], "head_sha": head},
+                "PR target branch or revision differs from the approved run. Preserve human changes.")
+
     def current_pr(self, head):
         pr = self.state["pr"]
         current = self.check_pr(self.app("pr-view", pr["number"]), head)
         match = self.check_pr(self.unique_pr() or {}, head)
         require(current["number"] == match["number"] == pr["number"], "The PR number changed.")
+        self.check_pr_target(current, head)
         return current
 
     def push(self):
@@ -468,18 +486,22 @@ class Coordinator:
         previous = self.state.get("published_head")
         pushes = self.state["pushes"]
         attempt = pushes.get(head)
-        if attempt or previous:
-            observed = self.fetch(branch)
-            if observed == head and attempt:
-                return
-            require(observed == previous, "Remote task branch moved. Reconcile before pushing.")
+        ref = f"refs/heads/{branch}"
+        lookup = self.host("branch_ref", proposal=self.plan, ref=ref)
+        require(lookup.get("ref") == ref and "sha" in lookup
+                and (lookup["sha"] is None or sha(lookup["sha"])),
+                "The exact remote task ref lookup is inconclusive. Reconcile before pushing.")
+        observed = lookup["sha"]
+        if observed == head and attempt:
+            return
+        require(observed == previous, "Remote task branch moved. Reconcile before pushing.")
         self.checkout_head(head)
         attempts = attempt["attempts"] if attempt else 0
         require(attempts < self.config.get("limits", {}).get("push_attempts", 2), "Push budget exhausted.")
         pushes[head] = {"previous": previous, "attempts": attempts + 1}
         self.save()
         receipt = self.app("push", self.plan["checkout"], branch, head)
-        require(receipt == {"ref": f"refs/heads/{branch}", "sha": head} and self.fetch(branch) == head,
+        require(receipt == {"ref": ref, "sha": head} and self.fetch(branch) == head,
                 "Push could not be confirmed at the verified commit.")
 
     def unique_pr(self):
@@ -505,6 +527,7 @@ class Coordinator:
             allowed = head if head in self.state["pushes"] and observed.get("head_sha") == head else previous
             self.check_pr(observed, allowed)
             require(observed["number"] == current["number"], "The PR number changed.")
+            self.check_pr_target(observed, allowed)
             self.push()
             confirmed = self.current_pr(head)
         else:
@@ -530,6 +553,7 @@ class Coordinator:
             confirmed = self.check_pr(self.app("pr-view", number), head)
             require(confirmed["number"] == number and self.fetch(self.plan["branch"]) == head,
                     "PR readback or published branch does not match the verified commit.")
+            self.check_pr_target(confirmed, head)
         self.state.update(pr=confirmed, published_head=head, create_pending=False)
         self.stage("link_pr", "Confirmed the verified commit on the run's PR.")
         return True
@@ -553,7 +577,8 @@ class Coordinator:
         }
         if role == "quality" and previous:
             request.update(prior_review_ref=previous["job_id"], prior_coverage=previous)
-        if role not in round_:
+        if role not in round_ or (round_[role]["result"]["verdict"] == "unverified"
+                                  and self.recovery_requested("retry_job")):
             while True:
                 outcome = self.job(f"{role}-review", **request)
                 if outcome is None:
@@ -576,32 +601,55 @@ class Coordinator:
             self.save()
         evidence = round_[role]
         if not evidence.get("receipt"):
-            self.current_pr(head)
             review = evidence["result"]
             title = f"Agent Ops {role} review: {review['verdict']} at {head} (job {evidence['job_id']})"
             body = title + "\n\n```json\n" + json.dumps(review, indent=2) + "\n```"
             evidence["receipt"] = self.post("pr-review", evidence["job_id"],
                                             {"body": body, "commit_id": head})
             self.save()
+        review = evidence["result"]
+        if review["verdict"] == "unverified":
+            reason = " ".join(limit.strip() for limit in review["verification_limits"] if limit.strip())
+            raise Pause(f"The {role} review is unverified. {reason}")
         return True
 
     def post(self, operation, key, payload):
         entries = self.state["receipts"]
-        if key in entries:
-            if entries[key] is None:
-                require(self.recovery_requested("confirm_receipt"),
-                        f"{operation} has an uncertain receipt. Confirm publication before retrying.")
-                self.current_pr(self.state["head_sha"])
+        pending = key in entries
+        if entries.get(key) is not None:
+            return entries[key]
+        head = self.state["head_sha"]
+        attempt = self.state.setdefault("post_attempts", {}).get(key)
+        intent = digest([operation, self.state["pr"]["number"], head, payload])
+        require(not attempt or attempt["intent"] == intent,
+                f"{operation} payload changed after the recorded attempt. Reconcile before retrying.")
+        self.current_pr(head)
+        if pending:
+            if self.recovery_requested("confirm_receipt"):
                 decision = self.host("recover", kind="receipt", operation=operation, key_id=key,
                                      pr=self.state["pr"], payload=payload, proposal=self.plan,
                                      response=self.response)
                 receipt = self.post_receipt(operation, decision["receipt"])
                 self.record_recovery(decision, "confirm_receipt", key)
+                self.response = None
+            else:
+                lookup = self.host("post_lookup", operation=operation, key_id=key, pr=self.state["pr"],
+                                   head_sha=head, app_actor=self.config["app_actor"], payload=payload,
+                                   proposal=self.plan)
+                require(lookup.get("status") in ("found", "absent"),
+                        f"{operation} has an uncertain receipt. Confirm the exact post before retrying.")
+                receipt = self.post_receipt(operation, lookup.get("receipt")) if lookup["status"] == "found" else None
+                require(lookup["status"] == "found" or lookup.get("receipt") is None,
+                        f"{operation} lookup returned conflicting receipt evidence.")
+            if receipt is not None:
                 entries[key] = receipt
                 self.save()
-                self.response = None
-            return entries[key]
-        self.current_pr(self.state["head_sha"])
+                return receipt
+            self.current_pr(head)
+        used = attempt["count"] if attempt else int(pending)
+        require(used < self.config.get("limits", {}).get("post_attempts", 2),
+                f"{operation} attempt budget exhausted for {key}.")
+        self.state["post_attempts"][key] = {"count": used + 1, "intent": intent}
         entries[key] = None
         self.save()
         receipt = self.post_receipt(operation, self.app(operation, self.state["pr"]["number"], payload=payload))
@@ -610,7 +658,8 @@ class Coordinator:
         return receipt
 
     def post_receipt(self, operation, receipt):
-        require(receipt.get("id") and receipt.get("html_url", "").startswith(self.state["pr"]["html_url"] + "#")
+        require(isinstance(receipt, dict) and receipt.get("id")
+                and receipt.get("html_url", "").startswith(self.state["pr"]["html_url"] + "#")
                 and receipt.get("author") == self.config["app_actor"], f"{operation} has no confirmed App receipt.")
         return receipt
 
@@ -629,16 +678,57 @@ class Coordinator:
             "mode": "explicit", "recorded_at": datetime.now(timezone.utc).isoformat(),
         })
 
+    def review_exception_scope(self, head, round_):
+        return {
+            "grant": "review_exception", "proposal_id": self.state["proposal_id"],
+            "pr_number": self.state["pr"]["number"], "base_sha": self.plan["base_sha"],
+            "head_sha": head, "review_jobs": {role: round_[role]["job_id"] for role in REVIEW_ROLES},
+            "findings": [
+                {**finding, "role": role}
+                for role in REVIEW_ROLES for finding in round_[role]["result"]["findings"]
+                if finding["blocking"] and finding["disposition"] in OPEN_DISPOSITIONS
+            ],
+        }
+
+    def review_exception(self, scope):
+        request_id = digest(scope)
+        if any(decision["request_id"] == request_id for decision in self.state["decisions"]):
+            return True
+        result = self.host("authorize", **scope, request_id=request_id, proposal=self.plan,
+                           response=self.response, request=self.state.get("request"))
+        if result.get("approved") is not True:
+            if result.get("wait") is True:
+                self.wait("waiting_approval", result.get("message", "Decide whether to accept these review findings."),
+                          request_id, **scope)
+                return None
+            return False
+        require((self.response or {}).get("request_id") == request_id
+                and result.get("request_id") == request_id and result.get("mode") == "explicit"
+                and result.get("actor") and result.get("reference")
+                and isinstance(result.get("rationale"), str) and result["rationale"].strip(),
+                "A review exception needs explicit operator approval, exact findings and a rationale.")
+        self.state["decisions"].append({
+            **scope, "request_id": request_id, "mode": "explicit", "actor": result["actor"],
+            "reference": result["reference"], "rationale": result["rationale"],
+            "recorded_at": datetime.now(timezone.utc).isoformat(),
+        })
+        self.response = None
+        self.event("authorization", "Recorded operator approval of the review exception.", request_id=request_id)
+        return True
+
     def finish_review(self):
         head = self.state["head_sha"]
         round_ = self.state["reviews"][head]
         self.current_pr(head)
-        findings = [
-            {"role": role, **finding}
-            for role in REVIEW_ROLES for finding in round_[role]["result"]["findings"]
-            if finding["blocking"] and finding["disposition"] in OPEN_DISPOSITIONS
-        ]
+        scope = self.review_exception_scope(head, round_)
+        findings = scope["findings"]
         if findings:
+            exception = self.review_exception(scope)
+            if exception is None:
+                return False
+            if exception:
+                self.stage("finalize", "Current reviews are recorded with an approved exception.")
+                return True
             self.count("review_repairs", 2, head)
             if self.plan.get("return_to_start_for_repair"):
                 self.issue("repair-" + head)
@@ -648,6 +738,28 @@ class Coordinator:
             require(all(round_[role]["result"]["verdict"] == "pass" for role in REVIEW_ROLES),
                     "Both current reviews need passing verdicts.")
             self.stage("finalize", "Both independent reviews passed for the current PR revision.")
+        return True
+
+    def handoff_body(self, head, base):
+        check = self.state["checks"][head]
+        reviews = self.state["reviews"][head]
+        body = (
+            f"Ready for human merge review at `{head}` (base `{base}`).\n\n"
+            f"Required checks passed in `{check['job_id']}` "
+            f"({', '.join(self.plan['required_checks'])}).\n"
+        )
+        for role in REVIEW_ROLES:
+            evidence = reviews[role]
+            body += f"- {role.title()}: {evidence['result']['verdict']} ({evidence['receipt']['html_url']})\n"
+        if any(reviews[role]["result"]["verdict"] != "pass" for role in REVIEW_ROLES):
+            request_id = digest(self.review_exception_scope(head, reviews))
+            decision = next((decision for decision in self.state["decisions"]
+                             if decision["request_id"] == request_id), None)
+            require(decision, "Current review failures need an approved exception before handoff.")
+            accepted = ", ".join(f"{f['role']}/{f['id']}" for f in decision["findings"])
+            body += (f"\nReview exception approved by {decision['actor']} ({decision['reference']}).\n\n"
+                     f"Accepted findings: {accepted}\n\nRationale: {decision['rationale']}\n")
+        return body
 
     def advance(self, response):
         self.response = response
@@ -696,20 +808,13 @@ class Coordinator:
                 elif stage == "spec":
                     if not self.review("spec"):
                         return
-                    self.finish_review()
+                    if not self.finish_review():
+                        return
                 elif stage == "finalize":
                     self.inspect()
                     head, base = self.state["head_sha"], self.plan["base_sha"]
                     self.current_pr(head)
-                    check = self.state["checks"][head]
-                    reviews = self.state["reviews"][head]
-                    body = (
-                        f"Ready for human merge review at `{head}` (base `{base}`).\n\n"
-                        f"Required checks passed in `{check['job_id']}` "
-                        f"({', '.join(self.plan['required_checks'])}).\n"
-                        f"- Quality: pass ({reviews['quality']['receipt']['html_url']})\n"
-                        f"- Spec: pass ({reviews['spec']['receipt']['html_url']})\n"
-                    )
+                    body = self.handoff_body(head, base)
                     final_comment = self.post("pr-comment", "handoff:" + head, {"body": body})
                     self.current_pr(head)
                     self.issue("handoff-" + head, evidence=final_comment)
