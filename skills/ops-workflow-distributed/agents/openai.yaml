@@ -1,0 +1,4 @@
+interface:
+  display_name: "Distributed issue workflow"
+  short_description: "Deliver an authorized issue through workers and PR reviews"
+  default_prompt: "Use $ops-workflow-distributed to start or resume one authorized issue on the configured host."
