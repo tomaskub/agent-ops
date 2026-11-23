@@ -53,6 +53,12 @@ The limits shown are the defaults. Review retries apply per role and head. Opera
 
 Use an operator-owned state directory outside the implementation checkout and worker mounts, on a local filesystem with advisory locks and atomic rename. The coordinator keeps one JSON record per issue and repository. It records proposal versions, approval provenance, stage, reserved job IDs and assignments, checks and review rounds keyed by SHA, superseded results, retries, attempted mutations and confirmed receipts. Evidence stays in launcher output or approved host storage. Use the same state directory across resumes and keep it available until handoff. A single installed route should own the checkout and job namespace for that run. Keep secrets out of all request, state, and worker files.
 
+### Hermes enrollment defaults
+
+The operator enrolls each repository in Hermes and grants the GitHub App access to it. Hermes maps the enrolled repository to the PER-66 project key and prepares or reuses its isolated trusted checkout. The project key is a launcher registry name that selects the Git source, worker image and verification command. Hermes supplies it at dispatch.
+
+For an enrolled repository with confirmed App access, an authenticated delegation from an authorized requester on an eligible issue preauthorizes both `execute` and `publish`. Record the delegation and the approved route. Proceed through checkout setup and early PR publication without separate approvals for the branch plan or PR draft. The existing verification and review gates apply, and a human owns the merge. Default to `main` and check that the repository route and helper agree on the target. An explicit repository policy can configure a different target.
+
 ### Trusted host adapter
 
 The coordinator calls `host OPERATION` with JSON on stdin and reads one JSON object on stdout. Every request includes `key: {issue, repository}`. Return a nonzero status for unavailable operations. Send concise diagnostics through operator-controlled logs.
@@ -93,7 +99,11 @@ The coordinator calls the configured helper directly with `OWNER/REPO` followed 
 
 The helper also supports `pr-update NUMBER` with title or body and reports merge fields via `pr-view`. The coordinator appends the final evidence with `pr-comment` to preserve any edits to the PR body. `pr-review` submits a COMMENT at the exact commit. The PR record keeps the App author and receipt for each published result. Use the existing helper setup for token issuance and rotation.
 
-An ambiguous create is recovered through `pr-list` and `pr-view`. Require a previously persisted create intent, one matching PR, the approved source branch lookup, repository URL, App author, both SHAs, open state and matching remote head. Multiple, closed or unexpected matches pause the run. The helper's compact readback exposes SHAs, rather than base branch name or title and body. The initial target is set in the helper. Live takeover after a same-SHA retarget or when exact content needs confirmation requires trusted operator readback. The helper currently exposes a first-page PR lookup and no listing for reviews or comments. An uncertain post needs a confirmed receipt before proceeding. Fetch failure also needs operator reconciliation when a missing task ref and an access failure are indistinguishable.
+An ambiguous create is recovered through `pr-list` and `pr-view`. Require a previously persisted create intent, one matching PR, the approved source branch lookup, repository URL, App author, both SHAs, open state and matching remote head. Multiple, closed or unexpected matches pause the run. The helper exposes both SHAs and the first page of PRs for the task branch.
+
+- If the PR target is ambiguous or a same-SHA retarget is suspected, use an authorized GitHub readback of the base branch name and compare it with the configured target. Use the same trusted readback if exact PR content needs confirmation.
+- After an uncertain review or comment write, find the exact App-authored post on the PR. Match its job or handoff evidence and the reviewed commit for a review. Use the confirmed post URL, ID and author as the receipt.
+- After a failed task-branch fetch, confirm repository access and look up the exact ref. Only a successful lookup that confirms absence establishes a missing branch. An access, transport or other lookup error leaves the ref unresolved. Pause and surface the error.
 
 ## Controlled verification
 
