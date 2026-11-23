@@ -1,0 +1,4 @@
+interface:
+  display_name: "Ops: Setup verification"
+  short_description: "Establish repeatable repository checks"
+  default_prompt: "Use $ops-setup-verification to agree and establish a repeatable verification command for this repository or selected area."

@@ -103,3 +103,22 @@ Inspect existing tooling and help me agree a command a new worktree can run to b
 ```
 
 This skill stands alone and supplies environment preparation for the planned `ops-implement` workflow. Verification policy and the full test suite remain separate.
+
+## Setup verification
+
+Use [`ops-setup-verification`](skills/ops-setup-verification/SKILL.md) to establish or revise executable checks for a repository or selected area. Install it with:
+
+```sh
+npx skills add tomaskub/agent-ops --skill ops-setup-verification
+```
+
+The skill inspects existing checks and helps you agree which ones are required, where they run, and what evidence they produce. It reuses an adequate command or implements the smallest repository-native change to make the agreed checks repeatable. It documents the command in `docs/agents/verification.md` and connects both `AGENTS.md` and `CLAUDE.md` to that guide.
+
+The command runs in a prepared checkout. The skill checks a fresh worktree or clone, repeats the run, and exercises failure handling with a disposable fixture. The guide defines what implementation agents and reviewers record for the tested revision, including skipped or unavailable checks and any operator exceptions.
+
+Example request after installation, from the target project:
+
+```text
+Use ops-setup-verification to set up repeatable checks for this repository.
+Inspect our existing tooling and help me agree which checks are required.
+```
