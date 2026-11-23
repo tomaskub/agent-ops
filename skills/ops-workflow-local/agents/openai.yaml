@@ -1,0 +1,4 @@
+interface:
+  display_name: "Ops: Local workflow"
+  short_description: "Deliver an issue through local reviews and an approved PR"
+  default_prompt: "Use $ops-workflow-local to deliver the selected issue locally. Present the branch and worktree plan for approval."

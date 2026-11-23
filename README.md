@@ -167,3 +167,15 @@ Run the repository's required checks and return the patch and verification evide
 ```
 
 For a repair, use the same invocation and give the starting revision and the agreed findings to address. The handoff covers the changed files, tested revision or patch, checks and evidence, acceptance criteria, and remaining blockers. The orchestrator uses it to track revisions, decide when to dispatch review, and publish the PR.
+
+## Deliver an issue locally
+
+Use [`ops-workflow-local`](skills/ops-workflow-local/SKILL.md) in Codex or Claude Code to take one selected issue through implementation, verification, independent reviews and GitHub publication. Install it with the shared role skills:
+
+```sh
+npx skills add tomaskub/agent-ops --skill ops-workflow-local --skill ops-implement --skill ops-review-quality --skill ops-review-spec
+```
+
+From the target project, request `ops-workflow-local APP-12` with your actual issue key. The coordinator reads the repository's setup and review policies, then asks you to approve the pinned base, branch, isolated worktree and In Progress transition. It runs the repository's checks and uses separate quality and spec reviewers on the verified commit. It asks for approval of the complete PR draft before pushing, confirms publication and leaves the issue In Review for human handoff.
+
+Use the same issue key to resume from the saved local run record. The workflow uses the repository's own setup and verification commands and runs without Hermes or Docker.
