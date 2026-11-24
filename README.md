@@ -191,3 +191,17 @@ npx skills add tomaskub/agent-ops --skill ops-workflow-distributed --skill ops-i
 Start or resume an authorized Linear issue and repository with the [coordinator interface](skills/ops-workflow-distributed/references/coordinator.md). After the first passing required verification, the host publishes one PR through the PER-73 GitHub App helper. Separate quality and spec workers review the pinned revision in sequence. Verified repairs update the same PR, and final evidence goes to a human for merge.
 
 Run the local scripted exercise with `python3 -B tests/distributed_fixture.py`. The fixture uses a disposable Git repository, a scripted worker launcher and an App publication fixture.
+
+### Resume an interrupted distributed run
+
+On the configured Hermes host, use the installed skill directory in `$skill` and the original host configuration in `$config`. Use the same issue key and repository as the original run.
+
+```sh
+python3 -B "$skill/scripts/coordinator.py" --config "$config" status PER-123 owner/repo
+python3 -B "$skill/scripts/coordinator.py" --config "$config" resume PER-123 owner/repo
+```
+
+`status` reads the saved snapshot. Check its stage, worker, and recent events before using `resume` to advance the first incomplete gate.
+
+- `waiting_worker` means a worker job is outstanding. Wait for the launcher to report completion, then resume the run.
+- `blocked` needs operator action. Read the diagnostic and resolve the reported issue before resuming. Follow the [coordinator reference](skills/ops-workflow-distributed/references/coordinator.md) for approvals, authenticated replies, and recovery.
