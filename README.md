@@ -190,6 +190,8 @@ npx skills add tomaskub/agent-ops --skill ops-workflow-distributed --skill ops-i
 
 Start or resume an authorized Linear issue and repository with the [coordinator interface](skills/ops-workflow-distributed/references/coordinator.md). After the first passing required verification, the host publishes one PR through the PER-73 GitHub App helper. Separate quality and spec workers review the pinned revision in sequence. Verified repairs update the same PR, and final evidence goes to a human for merge.
 
+Start the Hermes PR description with the non-closing Linear reference `Refs <issue-key>` and keep that line when editing the description. After the owner merges the reviewed head, Hermes verifies the merge before moving the Linear issue to Done.
+
 Run the local scripted exercise with `python3 -B tests/distributed_fixture.py`. The fixture uses a disposable Git repository, a scripted worker launcher and an App publication fixture.
 
 ### Resume an interrupted distributed run
